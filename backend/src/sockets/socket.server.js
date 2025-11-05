@@ -3,7 +3,7 @@ const cookie = require("cookie");
 const jwt = require("jsonwebtoken");
 const userModel = require("../models/user.model");
 const aiService = require("../services/ai.service");
-// const messageModel = require("../models/message.model");
+const messageModel = require("../models/message.model");
 // const { createMemory, queryMemory } = require("../services/vector.service");
 
 function initSocketServer(httpServer) {
@@ -46,6 +46,22 @@ function initSocketServer(httpServer) {
        }
        */
       
+       await messageModel.create({
+        chat:messagePayload.chat,
+        user:socket.user._id,
+        content:messagePayload.content,
+        role:"user"
+       })
+
+
+       const chatHistory = await messageModel.find({
+          chat:messagePayload.chat
+       })
+
+       console.log("Chat History", );
+       
+
+
       /* messagePayload = { chat:chatId,content:message text } */
   //     const [message, vectors] = await Promise.all([
   //       messageModel.create({
@@ -110,8 +126,22 @@ function initSocketServer(httpServer) {
   //       },
   //     ];
 
-      const response = await aiService.generateResponse(messagePayload.content)
+      const response = await aiService.generateResponse(
+        chatHistory.map((item) => {
+          return {
+            role: item.role,
+            parts: [{ text: item.content }],
+          };
+        })
+      );
       // const response = await aiService.generateResponse([...ltm, ...stm]);
+
+      await messageModel.create({
+        chat: messagePayload.chat,
+        user: socket.user._id,
+        content: response,
+        role: "model",
+      });
 
       socket.emit("ai-response", {
         content: response,
