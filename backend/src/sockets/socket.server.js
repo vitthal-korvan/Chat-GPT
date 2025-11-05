@@ -54,9 +54,9 @@ function initSocketServer(httpServer) {
        })
 
 
-       const chatHistory = await messageModel.find({
+       const chatHistory = (await messageModel.find({
           chat:messagePayload.chat
-       })
+       }).sort({createdAt: -1}).limit(20).lean()).reverse()
 
        console.log("Chat History", );
        
